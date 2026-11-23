@@ -8,7 +8,7 @@ from orders.entities.product import Product
 from orders.entities.order import Order
 
 
-class TestMyView(TestCase):
+class TestOrderView(TestCase):
     def setUp(self):
         self.order = Order.objects.create()
         self.url = reverse('process_order', args=[self.order.id])
