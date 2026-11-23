@@ -32,6 +32,15 @@
 
 - `python manage.py runserver`
 
+## Traitement d'une commande
+
+La vue `process_order` reçoit la requête et delegue à `OrderService`.
+Le service récupere la commande et confie chaque produit à
+`ProductProcessor`, qui sélectionne une stratégie selon son type.
+
+Les regles spécifiques à chaque produit se trouvent dans les strategies
+et dans `ProductService`. Les questions ouvertes sont dans [NOTES.md](NOTES.md).
+
 ## Instructions
 
 - Do not modify any classes marked with the comment: `# WARN: Should not be changed during the exercise`
