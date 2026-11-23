@@ -17,7 +17,7 @@ class TestProcessOrderIntegration(TestCase):
         self.order = Order.objects.create()
         self.url = reverse("process_order", args=[self.order.id])
 
-    @patch("orders.my_views.date")
+    @patch("orders.services.implementations.order_service.date")
     @patch("orders.services.implementations.product_service.date")
     @patch("orders.services.implementations.product_service.ns")
     def test_expired_product_is_removed_from_stock_and_notified(
