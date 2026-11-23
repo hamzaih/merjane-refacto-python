@@ -1,26 +1,27 @@
+from abc import ABC, abstractmethod
 from datetime import date
 
 from ...repositories.product_repository import pr
 from .product_service import ps
 
 
-class ProductProcessor:
+class ProductProcessingStrategy(ABC):
+    @abstractmethod
     def process(self, product):
-        if product.type == "NORMAL":
-            self._process_normal(product)
-        elif product.type == "SEASONAL":
-            self._process_seasonal(product)
-        elif product.type == "EXPIRABLE":
-            self._process_expirable(product)
+        pass
 
-    def _process_normal(self, product):
+
+class NormalProductStrategy(ProductProcessingStrategy):
+    def process(self, product):
         if product.available > 0:
             product.available -= 1
             pr.save(product)
         elif product.lead_time > 0:
             ps.notify_delay(product.lead_time, product)
 
-    def _process_seasonal(self, product):
+
+class SeasonalProductStrategy(ProductProcessingStrategy):
+    def process(self, product):
         if (date.today() > product.season_start_date
                 and date.today() < product.season_end_date
                 and product.available > 0):
@@ -29,11 +30,28 @@ class ProductProcessor:
         else:
             ps.handle_seasonal_product(product)
 
-    def _process_expirable(self, product):
+
+class ExpirableProductStrategy(ProductProcessingStrategy):
+    def process(self, product):
         if product.available > 0 and product.expiry_date > date.today():
             product.available -= 1
             pr.save(product)
         else:
             ps.handle_expired_product(product)
+
+
+class ProductProcessor:
+    def __init__(self, strategies=None):
+        self.strategies = strategies if strategies is not None else {
+            'NORMAL': NormalProductStrategy(),
+            'SEASONAL': SeasonalProductStrategy(),
+            'EXPIRABLE': ExpirableProductStrategy(),
+        }
+
+    def process(self, product):
+        strategy = self.strategies.get(product.type)
+        if strategy is not None:
+            strategy.process(product)
+
 
 product_processor = ProductProcessor()
