@@ -7,4 +7,4 @@ class OrderRepository:
     def save(self, o):
         o.save()
 
-or_ = OrderRepository()
+order_repository = OrderRepository()

@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from datetime import date
 
-from ...repositories.product_repository import pr
-from .product_service import ps
+from ...repositories.product_repository import product_repository
+from .product_service import product_service
 
 
 class ProductProcessingStrategy(ABC):
@@ -15,9 +15,9 @@ class NormalProductStrategy(ProductProcessingStrategy):
     def process(self, product):
         if product.available > 0:
             product.available -= 1
-            pr.save(product)
+            product_repository.save(product)
         elif product.lead_time > 0:
-            ps.notify_delay(product.lead_time, product)
+            product_service.notify_delay(product.lead_time, product)
 
 
 class SeasonalProductStrategy(ProductProcessingStrategy):
@@ -26,18 +26,18 @@ class SeasonalProductStrategy(ProductProcessingStrategy):
                 and date.today() < product.season_end_date
                 and product.available > 0):
             product.available -= 1
-            pr.save(product)
+            product_repository.save(product)
         else:
-            ps.handle_seasonal_product(product)
+            product_service.handle_seasonal_product(product)
 
 
 class ExpirableProductStrategy(ProductProcessingStrategy):
     def process(self, product):
         if product.available > 0 and product.expiry_date > date.today():
             product.available -= 1
-            pr.save(product)
+            product_repository.save(product)
         else:
-            ps.handle_expired_product(product)
+            product_service.handle_expired_product(product)
 
 
 class ProductProcessor:

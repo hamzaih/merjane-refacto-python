@@ -32,7 +32,7 @@ class TestMyView(TestCase):
         self.assertEqual(response.json(), {'id': self.order.id})
         self.assertEqual(product.available, 1)
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_unavailable_normal_product_with_lead_time_notifies_delay(self, service):
         product = self.add_product(name='Cable', type='NORMAL', available=0, lead_time=3)
         self.client.post(self.url)
@@ -41,7 +41,7 @@ class TestMyView(TestCase):
         self.assertEqual(product.available, 0)
         service.notify_delay.assert_called_once_with(3, product)
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_unavailable_normal_product_without_lead_time_does_not_notify(self, service):
         product = self.add_product(name='Cable', type='NORMAL', available=0, lead_time=0)
         self.client.post(self.url)
@@ -50,7 +50,7 @@ class TestMyView(TestCase):
         self.assertEqual(product.available, 0)
         service.notify_delay.assert_not_called()
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_available_product_during_season_decreases_stock(self, service):
         product = self.add_product(
             name='Melon', type='SEASONAL', available=2,
@@ -63,7 +63,7 @@ class TestMyView(TestCase):
         self.assertEqual(product.available, 1)
         service.handle_seasonal_product.assert_not_called()
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_seasonal_product_outside_season_or_out_of_stock_is_delegated(self, service):
         cases = [
             ('before season', 2, 1, 5),
@@ -87,7 +87,7 @@ class TestMyView(TestCase):
                 self.assertEqual(product.available, available)
                 service.handle_seasonal_product.assert_called_once_with(product)
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_available_fresh_product_decreases_stock(self, service):
         product = self.add_product(
             name='Milk', type='EXPIRABLE', available=2,
@@ -99,7 +99,7 @@ class TestMyView(TestCase):
         self.assertEqual(product.available, 1)
         service.handle_expired_product.assert_not_called()
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_expired_or_unavailable_product_is_delegated(self, service):
         for label, available, expiry_offset in [
             ('expired', 2, -1), ('expires today', 2, 0), ('out of stock', 0, 1),
@@ -121,7 +121,7 @@ class TestMyView(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 405)
 
-    @patch('orders.services.implementations.product_processor.ps')
+    @patch('orders.services.implementations.product_processor.product_service')
     def test_process_order_should_return(self, mock_ns):
         products = [
             Product(available=15, lead_time=30, type="NORMAL",    name="USB Cable"),
@@ -137,8 +137,8 @@ class TestMyView(TestCase):
                     season_start_date=date.today() + timedelta(days=180),
                     season_end_date=date.today() + timedelta(days=240)),
         ]
-        for p in products:
-            p.save()
+        for product in products:
+            product.save()
 
         o = Order.objects.create()
         o.products.set(products)

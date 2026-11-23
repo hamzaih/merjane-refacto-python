@@ -4,7 +4,7 @@ class ProductRepository:
     def find_by_id(self, id):
         return Product.objects.filter(pk=id)
 
-    def save(self, p):
-        p.save()
+    def save(self, product):
+        product.save()
 
-pr = ProductRepository()
+product_repository = ProductRepository()

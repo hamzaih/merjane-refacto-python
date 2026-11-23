@@ -9,28 +9,28 @@ from orders.services.implementations.product_service import ProductService
 
 class MyUnitTests(unittest.TestCase):
     @patch('orders.services.implementations.product_service.ns')
-    @patch('orders.services.implementations.product_service.pr')
-    def test_notify_delay(self, mock_pr, mock_ns):
-        p = Product(
+    @patch('orders.services.implementations.product_service.product_repository')
+    def test_notify_delay(self, mock_product_repository, mock_ns):
+        product = Product(
             name="RJ45 Cable",
             type="NORMAL",
             available=0,
             lead_time=15,
         )
-        mock_pr.save.return_value = p
-        ps = ProductService()
+        mock_product_repository.save.return_value = product
+        product_service = ProductService()
 
-        ps.notify_delay(p.lead_time, p)
+        product_service.notify_delay(product.lead_time, product)
 
-        self.assertEqual(0, p.available)
-        self.assertEqual(15, p.lead_time)
-        mock_pr.save.assert_called_once_with(p)
-        mock_ns.send_delay_notification.assert_called_once_with(p.lead_time, p.name)
+        self.assertEqual(0, product.available)
+        self.assertEqual(15, product.lead_time)
+        mock_product_repository.save.assert_called_once_with(product)
+        mock_ns.send_delay_notification.assert_called_once_with(product.lead_time, product.name)
 
     @patch('orders.services.implementations.product_service.date')
     @patch('orders.services.implementations.product_service.ns')
-    @patch('orders.services.implementations.product_service.pr')
-    def test_handle_seasonal_product(self, mock_pr, mock_ns, mock_date):
+    @patch('orders.services.implementations.product_service.product_repository')
+    def test_handle_seasonal_product(self, mock_product_repository, mock_ns, mock_date):
         mock_date.today.return_value = date(2026, 6, 15)
         cases = [
             ('after season', date(2026, 6, 1), date(2026, 6, 16), 2, 0, 'stock'),
@@ -40,26 +40,26 @@ class MyUnitTests(unittest.TestCase):
         ]
         for label, start, end, lead_time, available, notification in cases:
             with self.subTest(label=label):
-                mock_pr.reset_mock()
+                mock_product_repository.reset_mock()
                 mock_ns.reset_mock()
-                p = Product(name='Seasonal product', type='SEASONAL', available=3,
+                product = Product(name='Seasonal product', type='SEASONAL', available=3,
                             lead_time=lead_time, season_start_date=start, season_end_date=end)
 
-                ProductService().handle_seasonal_product(p)
+                ProductService().handle_seasonal_product(product)
 
-                self.assertEqual(available, p.available)
-                mock_pr.save.assert_called_once_with(p)
+                self.assertEqual(available, product.available)
+                mock_product_repository.save.assert_called_once_with(product)
                 if notification == 'stock':
-                    mock_ns.send_out_of_stock_notification.assert_called_once_with(p.name)
+                    mock_ns.send_out_of_stock_notification.assert_called_once_with(product.name)
                     mock_ns.send_delay_notification.assert_not_called()
                 else:
-                    mock_ns.send_delay_notification.assert_called_once_with(lead_time, p.name)
+                    mock_ns.send_delay_notification.assert_called_once_with(lead_time, product.name)
                     mock_ns.send_out_of_stock_notification.assert_not_called()
 
     @patch('orders.services.implementations.product_service.date')
     @patch('orders.services.implementations.product_service.ns')
-    @patch('orders.services.implementations.product_service.pr')
-    def test_handle_expiring_product(self, mock_pr, mock_ns, mock_date):
+    @patch('orders.services.implementations.product_service.product_repository')
+    def test_handle_expiring_product(self, mock_product_repository, mock_ns, mock_date):
         mock_date.today.return_value = date(2026, 6, 15)
         cases = [
             ('available and fresh', 3, date(2026, 6, 16), 2, False),
@@ -69,17 +69,17 @@ class MyUnitTests(unittest.TestCase):
         ]
         for label, initial, expiry, expected, notified in cases:
             with self.subTest(label=label):
-                mock_pr.reset_mock()
+                mock_product_repository.reset_mock()
                 mock_ns.reset_mock()
-                p = Product(name='Expirable product', type='EXPIRABLE', available=initial,
+                product = Product(name='Expirable product', type='EXPIRABLE', available=initial,
                             expiry_date=expiry)
 
-                ProductService().handle_expired_product(p)
+                ProductService().handle_expired_product(product)
 
-                self.assertEqual(expected, p.available)
-                mock_pr.save.assert_called_once_with(p)
+                self.assertEqual(expected, product.available)
+                mock_product_repository.save.assert_called_once_with(product)
                 if notified:
-                    mock_ns.send_expiry_notification.assert_called_once_with(p.name)
+                    mock_ns.send_expiry_notification.assert_called_once_with(product.name)
                 else:
                     mock_ns.send_expiry_notification.assert_not_called()
 
